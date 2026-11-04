@@ -31,7 +31,6 @@
   - [Key Engineering Discoveries & Findings](#key-engineering-discoveries--findings)
 - [Project Directory Structure](#-project-directory-structure)
 - [Firmware Setup & Flashing Guide](#-firmware-setup--flashing-guide)
-- [Team & Acknowledgments](#-team--acknowledgments)
 
 ---
 
@@ -67,21 +66,21 @@ The system establishes a concurrent dual-cloud pipeline:
 flowchart TD
     subgraph AC_Circuits ["Electrical Loads Under Test"]
         MAINS["230V AC Mains Supply"]
-        LOAD["Target Appliance Load\n(LED Bulb / Fan / Laptop Charger)"]
+        LOAD["Target Appliance Load<br>LED Bulb / Fan / Laptop Charger"]
         MAINS --> LOAD
     end
 
     subgraph Sensors ["Sensor Interface"]
-        ZMPT["ZMPT101B Voltage Transformer\n(Analog ADC1_CH6 / Pin 34)"]
-        SCT["SCT-013-030 Split-Core CT\n(Analog ADC1_CH7 / Pin 35)"]
-        MAINS -.->|Stepped-down Voltage| ZMPT
-        LOAD -.->|Magnetic Induction (Live Conductor)| SCT
+        ZMPT["ZMPT101B Voltage Transformer<br>ADC1_CH6 / Pin 34"]
+        SCT["SCT-013-030 Split-Core CT<br>ADC1_CH7 / Pin 35"]
+        MAINS -.->|"Stepped-down Voltage"| ZMPT
+        LOAD -.->|"Magnetic Induction - Live Conductor"| SCT
     end
 
     subgraph Controller ["ESP32 Microcontroller Core"]
-        SAMPLER["Digital RMS Sampling Engine\n- 2,000 Voltage Samples\n- 1,480 Current Samples"]
-        CALC["Math & Signal Processing\n- Apparent Power: S = Vrms x Irms\n- EMA Smoothing (alpha = 0.2)\n- Predictive Billing Engine\n- Load Utilization %"]
-        NVS["NVS Flash Memory (Preferences)\nNon-Volatile Backup (Every 60s)"]
+        SAMPLER["Digital RMS Sampling Engine<br>2,000 Voltage Samples<br>1,480 Current Samples"]
+        CALC["Math and Signal Processing<br>Apparent Power: S = Vrms x Irms<br>EMA Smoothing: alpha = 0.2<br>Predictive Billing Engine<br>Load Utilization %"]
+        NVS["NVS Flash Memory - Preferences<br>Non-Volatile Backup Every 60s"]
         
         ZMPT --> SAMPLER
         SCT --> SAMPLER
@@ -90,18 +89,18 @@ flowchart TD
     end
 
     subgraph Cloud ["Dual Cloud Pipeline"]
-        BLYNK["Blynk 2.0 Cloud IoT\n(Virtual Pins V0-V18)\nCadence: 5s"]
-        APPSCRIPT["Google Apps Script\n(Serverless Web App HTTPS Endpoint)\nCadence: 15s"]
-        SHEETS[("Google Sheets Research DB\nTabular Experiment Rows")]
+        BLYNK["Blynk 2.0 Cloud IoT<br>Virtual Pins V0-V18<br>Cadence: 5s"]
+        APPSCRIPT["Google Apps Script<br>Serverless Web App HTTPS Endpoint<br>Cadence: 15s"]
+        SHEETS[("Google Sheets Research DB<br>Tabular Experiment Rows")]
         
-        CALC -->|Wi-Fi / TCP| BLYNK
-        CALC -->|HTTPS GET| APPSCRIPT
+        CALC -->|"Wi-Fi / TCP"| BLYNK
+        CALC -->|"HTTPS GET"| APPSCRIPT
         APPSCRIPT --> SHEETS
     end
 
     subgraph UI ["User Interfaces"]
-        DASH["Blynk Web Console & Mobile App\n(Gauges, Sliders, Overpower Cutoffs)"]
-        ANALYTICS["Google Sheets Analytics & Visualizations"]
+        DASH["Blynk Web Console and Mobile App<br>Gauges, Sliders, Alerts"]
+        ANALYTICS["Google Sheets Analytics and Visualizations"]
         
         BLYNK --> DASH
         SHEETS --> ANALYTICS
@@ -397,19 +396,3 @@ PowerSense-IoT-Energy-Monitor/
    String experimentID = "Bulb_13W_Test";
    ```
 5. Connect your ESP32 via micro-USB, select board **ESP32 Dev Module**, choose the correct COM port, and click **Upload**.
-
----
-
-## 👥 Team & Acknowledgments
-
-### Project Team (1st Year B.Tech CSE, 2025–26)
-- **Harshit Agarwalla** (1DT25CS110) — *Team Lead, Firmware Architecture, Blynk & Google Sheets Cloud Telemetry*
-- **Dewanshu Dutt Thakur** (1DT25CS084) — *Hardware Prototyping & Sensor Calibration*
-- **Gouravi Nayak** (1DT25CS104) — *Empirical Data Collection & Results Analysis*
-- **Ibbani S** (1DT25CS116) — *Experimental Testing & Metrics Verification*
-- **Karnika Jain** (1DT25CS127) — *Component Sourcing & Circuit Prototyping*
-
-### Academic Mentorship
-- **Project Guide:** Dr. Anjana Devi S C, Associate Professor, DSATM Bengaluru
-- **Course Coordinator:** Dr. Roopa R Kulkarni, DSATM Bengaluru
-- **Institution:** Department of Computer Science & Engineering, **Dayananda Sagar Academy of Technology and Management (DSATM)**, Bengaluru.
