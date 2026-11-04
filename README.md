@@ -6,6 +6,7 @@
 [![Language](https://img.shields.io/badge/Language-C%2B%2B%20%2F%20Arduino-00979D.svg)](https://www.arduino.cc/)
 [![Course](https://img.shields.io/badge/Academics-IDT%20%26%20EEC%20(1st%20Year)-orange.svg)](https://dsatm.edu.in/)
 [![Institution](https://img.shields.io/badge/Institution-DSATM%20Bengaluru-purple.svg)](https://dsatm.edu.in/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > An end-to-end IoT energy telemetry, load-profiling, and cloud logging system engineered during the **1st Year of Engineering (2025–26)** under the **Innovation Design and Thinking (IDT)** and **Engineering Exploration Course (EEC)** at **Dayananda Sagar Academy of Technology and Management (DSATM), Bengaluru**.
 
@@ -360,6 +361,7 @@ PowerSense-IoT-Energy-Monitor/
 │   └── hardware_setup_wide.jpg
 │
 ├── .gitignore                      # Git exclusion rules
+├── LICENSE                         # MIT open-source license
 └── README.md                       # Master repository documentation
 ```
 
