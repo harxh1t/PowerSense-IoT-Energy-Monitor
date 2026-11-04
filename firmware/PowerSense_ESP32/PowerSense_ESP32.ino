@@ -2,59 +2,68 @@
   ================================================================================
   PowerSense v2.0 - Smart Energy Consumption Monitoring System
   ================================================================================
-  Platform      : ESP32 DevKit V1
-  Sensors       : ZMPT101B (AC Voltage, fixed on mains) + SCT-013-030 (Non-invasive
-                  Current Transformer, moved between appliances under test)
-  Connectivity  : Blynk IoT Cloud
-  Calibration   : DT830D Digital Multimeter (used only during calibration, not
-                  wired into the circuit)
+  Academic Project : 1st Year B.Tech (2025-26)
+  Courses          : Innovation Design and Thinking (IDT) &
+                     Engineering Exploration Course (EEC)
+  Institution      : Dayananda Sagar Academy of Technology and Management (DSATM),
+                     Bengaluru
 
-  IMPORTANT HARDWARE CONSTRAINT
+  Project Team:
+  - Harshit Agarwalla      (1DT25CS110) - Team Lead, Firmware & Cloud Telemetry
+  - Dewanshu Dutt Thakur   (1DT25CS084) - Hardware Prototyping & Calibration
+  - Gouravi Nayak          (1DT25CS104) - Data Analysis & Documentation
+  - Ibbani S               (1DT25CS116) - Experimental Testing & Verification
+  - Karnika Jain           (1DT25CS127) - Component Sourcing & Circuit Testing
+
+  Faculty Mentors:
+  - Project Guide          : Dr. Anjana Devi S C, Associate Professor, DSATM
+  - Course Coordinator     : Dr. Roopa R Kulkarni, DSATM
+
+  Hardware & Cloud Platform:
+  - Microcontroller        : ESP32 DevKit V1 (Dual-Core, 2.4GHz Wi-Fi)
+  - Voltage Sensor         : ZMPT101B Active AC Voltage Transformer (Mains-fixed)
+  - Current Sensor         : SCT-013-030 Non-Invasive Split-Core Current Transformer
+  - IoT Cloud Interface    : Blynk 2.0 (Live Mobile & Web Dashboard)
+  - Cloud Database Logging : Google Sheets via Google Apps Script (Serverless HTTPS)
+  - Benchmark Reference    : DT830D Digital Multimeter (Calibration benchmark)
+
+  METROLOGICAL DESIGN PRINCIPLE
   --------------------------------------------------------------------------------
-  The voltage sensor is permanently fixed to the mains supply, while the current
-  sensor is physically relocated between appliances during testing. Because
-  voltage and current are NOT always sampled from the same electrical branch at
-  the same instant with a guaranteed phase relationship for this experimental
-  setup, this firmware deliberately computes and reports ONLY:
+  The voltage sensor is permanently installed across the mains supply, while the
+  current transformer clamp is physically moved between different appliances under
+  test. Because voltage and current are not sampled from a singular branch with a
+  guaranteed simultaneous phase angle in this multi-load experimental setup, this
+  firmware rigorously computes and reports:
 
         Apparent Power (VA) = Vrms x Irms
 
-  It does NOT compute, estimate, or fabricate Active/Real Power, Reactive Power,
-  Power Factor, or Frequency. Any research figures referencing "power" in this
-  project refer strictly to Apparent Power (VA).
+  It does NOT compute, estimate, or fabricate active/real power, reactive power,
+  or artificial power factors. Any power metrics referenced in this project
+  strictly denote Apparent Power (VA).
 
-  CHANGE LOG (v2.0 revision)
+  KEY ARCHITECTURAL FEATURES
   --------------------------------------------------------------------------------
-  - Predicted Monthly Bill now uses TOTAL MONITORING TIME (elapsed since boot /
-    last full reset) as the averaging denominator, instead of load-active
-    Runtime. This gives a statistically meaningful "as actually observed" usage
-    rate rather than an "as if always on" rate.
-  - CSV logging expanded: Timestamp (elapsed seconds), MaxVoltage, MinVoltage,
-    Load Utilization, and Monitoring Time are now included so every row is
-    immediately usable in Excel / Google Sheets / MATLAB / Python without
-    post-processing.
-  - Exponential Moving Average (EMA) filtering applied to the DISPLAYED /
-    LOGGED instantaneous Voltage, Current, and Apparent Power values only.
-    Raw (unfiltered) readings are still used for Energy accumulation, Peak
-    Power, Max/Min Voltage, and Alert detection, so smoothing cannot mask a
-    genuine transient or bias the cumulative energy total.
-  - Load Utilization (%) = (Runtime / Monitoring Time) x 100, added as a new
-    metric and Blynk datastream.
-  - Flash write strategy: UNCHANGED (once per minute) - confirmed adequate for
-    short research experiments.
-
-  Author        : Harshit
+  - Total Monitoring Time Denominator: Predicted monthly electricity bill uses
+    total elapsed monitoring time (uptime since boot/reset) rather than active
+    load runtime alone, providing an empirically realistic "observed usage" rate.
+  - Dual-Stream EMA Filter: Exponential Moving Average (alpha = 0.2) is applied
+    strictly to display/logging telemetry for UI gauge stability. Raw (unfiltered)
+    samples are preserved for cumulative energy (kWh) integration and peak capture.
+  - Load Utilization Metric: Ratio of active load runtime to total observation
+    duration: Load Utilization (%) = (Runtime / Monitoring Time) x 100.
+  - Fail-Safe Flash Persistence: Periodic state commits to ESP32 Preferences NVS
+    every 60 seconds to safeguard cumulative kWh against power failure.
   ================================================================================
 */
 
 // ============================================================================
-// SECTION 1: LIBRARIES
+// SECTION 1: LIBRARIES & BLYNK CREDENTIALS
 // ============================================================================
 
-// --- Blynk template identifiers MUST be defined before including Blynk headers ---
-#define BLYNK_TEMPLATE_ID "Your template ID"
-#define BLYNK_TEMPLATE_NAME "Your template name"
-#define BLYNK_AUTH_TOKEN "Your Auth Token"
+// --- Blynk template identifiers (must precede Blynk headers) ---
+#define BLYNK_TEMPLATE_ID "YOUR_TEMPLATE_ID"
+#define BLYNK_TEMPLATE_NAME "PowerSense"
+#define BLYNK_AUTH_TOKEN "YOUR_AUTH_TOKEN"
 #define BLYNK_PRINT Serial                          // Enables Blynk debug output on Serial
 
 #include <WiFi.h>
@@ -64,21 +73,20 @@
 #include <EmonLib.h>
 
 // ============================================================================
-// SECTION 2: WIFI CREDENTIALS
+// SECTION 2: NETWORK & CLOUD ENDPOINTS
 // ============================================================================
 
-char WIFI_SSID[] = "Wifi SSID";      
-char WIFI_PASS[] = "Wifi Password";  
+char WIFI_SSID[] = "YOUR_WIFI_SSID";      
+char WIFI_PASS[] = "YOUR_WIFI_PASSWORD";  
 
 String experimentID = "UNASSIGNED";
-// ============================================================================
-// GOOGLE SHEETS
-// ============================================================================
 
+// Google Apps Script Web App Deployment URL
+// Deploy google-apps-script/Code.gs as a Web App (access: Anyone) and paste your URL below:
 const char* GOOGLE_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbxRQBgPpYfz3AfI5jasEvyCoRhgi6vd8PGHv5HVc-bD5KqMNt_ifGzhhj_aabCamNtJig/exec";
+  "https://script.google.com/macros/s/YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_ID/exec";
 
-const unsigned long GOOGLE_SHEETS_INTERVAL_MS = 15000; // 15 seconds
+const unsigned long GOOGLE_SHEETS_INTERVAL_MS = 15000; // Log to Google Sheets every 15s
 
 unsigned long lastGoogleSheetsSend = 0;
 
