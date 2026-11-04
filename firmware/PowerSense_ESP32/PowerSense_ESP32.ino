@@ -1,6 +1,6 @@
 /*
   ================================================================================
-  PowerSense v2.0 - Smart Energy Consumption Monitoring System
+  PowerSense - Smart Energy Consumption Monitoring System
   ================================================================================
   Academic Project : 1st Year B.Tech (2025-26)
   Courses          : Innovation Design and Thinking (IDT) &
@@ -8,19 +8,9 @@
   Institution      : Dayananda Sagar Academy of Technology and Management (DSATM),
                      Bengaluru
 
-  Project Team:
-  - Harshit Agarwalla      (1DT25CS110) - Team Lead, Firmware & Cloud Telemetry
-  - Dewanshu Dutt Thakur   (1DT25CS084) - Hardware Prototyping & Calibration
-  - Gouravi Nayak          (1DT25CS104) - Data Analysis & Documentation
-  - Ibbani S               (1DT25CS116) - Experimental Testing & Verification
-  - Karnika Jain           (1DT25CS127) - Component Sourcing & Circuit Testing
-
-  Faculty Mentors:
-  - Project Guide          : Dr. Anjana Devi S C, Associate Professor, DSATM
-  - Course Coordinator     : Dr. Roopa R Kulkarni, DSATM
 
   Hardware & Cloud Platform:
-  - Microcontroller        : ESP32 DevKit V1 (Dual-Core, 2.4GHz Wi-Fi)
+  - Microcontroller        : ESP32 Dev Module (Dual-Core, 2.4GHz Wi-Fi)
   - Voltage Sensor         : ZMPT101B Active AC Voltage Transformer (Mains-fixed)
   - Current Sensor         : SCT-013-030 Non-Invasive Split-Core Current Transformer
   - IoT Cloud Interface    : Blynk 2.0 (Live Mobile & Web Dashboard)

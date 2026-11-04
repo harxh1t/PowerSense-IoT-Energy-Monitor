@@ -1,6 +1,6 @@
 # ⚡ PowerSense: IoT-Based Smart Energy Consumption Monitoring System
 
-[![ESP32](https://img.shields.io/badge/Hardware-ESP32%20DevKit%20V1-blue.svg)](https://www.espressif.com/)
+[![ESP32](https://img.shields.io/badge/Hardware-ESP32%20Dev%20Module-blue.svg)](https://www.espressif.com/)
 [![Blynk](https://img.shields.io/badge/IoT%20Platform-Blynk%202.0-00C49F.svg)](https://blynk.io/)
 [![Google Sheets](https://img.shields.io/badge/Cloud%20Database-Google%20Sheets-34A853.svg)](https://workspace.google.com/products/sheets/)
 [![Language](https://img.shields.io/badge/Language-C%2B%2B%20%2F%20Arduino-00979D.svg)](https://www.arduino.cc/)
@@ -15,7 +15,7 @@
 - [Project Overview](#-project-overview)
 - [Key Features](#-key-features)
 - [System Architecture](#-system-architecture)
-- [Hardware Setup & Pin Configuration](#-hardware-setup--pin-configuration)
+- [Circuit Design & Hardware Setup](#-circuit-design--hardware-setup)
 - [Dual-Cloud Telemetry Pipeline](#-dual-cloud-telemetry-pipeline)
   - [Blynk 2.0 Web & Mobile Dashboard](#1-blynk-20-web--mobile-dashboard)
   - [Google Sheets Cloud Logging (Google Apps Script)](#2-google-sheets-cloud-logging-google-apps-script)
@@ -109,27 +109,79 @@ flowchart TD
 
 ---
 
-## 🔌 Hardware Setup & Pin Configuration
+## 🔌 Circuit Design & Hardware Setup
+
+### Complete Circuit Schematic
+
+Below is the complete wiring diagram of the PowerSense system, showing the ESP32 Dev Module interface, the ZMPT101B AC voltage transformer, the SCT-013-030 current transformer, the DC bias conditioning network, and the AC mains load circuit:
+
+<p align="center">
+  <img src="images/circuit_diagram.png" alt="PowerSense Complete Circuit Diagram" width="850">
+</p>
+
+---
+
+### Detailed Circuit Architecture & Signal Conditioning
+
+#### 1. AC Voltage Sensing Subsystem (ZMPT101B)
+- **High-Voltage AC Interface:** The 220V/230V AC mains line connects directly across the high-voltage screw terminal block of the ZMPT101B module.
+- **Galvanic Isolation:** The internal micro-voltage transformer provides high galvanic isolation between the lethal AC mains and the low-voltage microcontroller logic.
+- **Signal Conditioning:** The onboard operational amplifier (op-amp) conditions and amplifies the stepped-down secondary voltage waveform, centering the alternating AC sine wave around an adjustable DC midpoint.
+- **Connections:**
+  - `VCC` $\to$ Connected to ESP32 **VIN (5V)** to supply the op-amp.
+  - `GND` $\to$ Connected to ESP32 **GND**.
+  - `OUT` $\to$ Routed directly to ESP32 **GPIO 34** (ADC1_CH6, input-only).
+
+#### 2. AC Current Sensing & DC Bias Conditioning Subsystem (SCT-013-030)
+Because the ESP32 analog-to-digital converter (ADC) can only sample unipolar positive voltages ($0\text{V}$ to $3.3\text{V}$), an alternating current signal cannot be connected directly to an ADC pin without clipping and damaging the silicon. A dedicated signal conditioning circuit is constructed on the breadboard:
+
+- **Burden Resistor ($100\Omega$ / `100E`):**
+  - Converts the secondary current produced by the current transformer into a proportional AC voltage swing ($V = I \times R_{\text{burden}}$).
+- **Voltage Divider DC Bias Network ($2 \times 10\text{k}\Omega$ Resistors):**
+  - Two matched $10\text{k}\Omega$ resistors form a precision voltage divider between the **3.3V** rail and **GND**, establishing a virtual DC midpoint at approximately $1.65\text{V}$ ($\frac{V_{CC}}{2}$).
+  - This shifts the entire alternating current waveform upward so that positive and negative half-cycles oscillate safely between $0\text{V}$ and $3.3\text{V}$.
+- **Decoupling / Filter Capacitor ($10\mu\text{F}$ Electrolytic):**
+  - Connected between the $1.65\text{V}$ bias midpoint and **GND**.
+  - Bypasses high-frequency AC ripple and transient switching noise directly to ground, stabilizing the virtual ground reference.
+- **Connection:** The conditioned, DC-biased AC signal is fed into ESP32 **GPIO 35** (ADC1_CH7, input-only).
+
+#### 3. AC Mains Single-Conductor Induction Isolation
+- **Electrical Safety:** The AC mains supply feeds the test load through an isolated terminal fixture.
+- **Non-Invasive Clamping:** The SCT-013 split-core clamp must encircle **strictly only ONE conductor** (the isolated Live or Neutral wire).
+- *Critical Principle:* Encircling both conductors of an intact zip-cord causes the equal and opposite electromagnetic fields of the forward and return currents to cancel each other out ($B_{\text{net}} \approx 0$), resulting in zero current measurement.
+
+---
 
 ### Bill of Materials (BOM)
-| Component | Specification | Function |
-| :--- | :--- | :--- |
-| **ESP32 DevKit V1** | 30-Pin, Dual-Core 240MHz, 2.4GHz Wi-Fi | Master controller, digital sampling, telemetry |
-| **ZMPT101B Module** | On-board micro-voltage transformer & op-amp | AC mains voltage measurement (0–250V AC) |
-| **SCT-013-030** | Non-invasive current transformer clamp (30A / 1V) | Safe current induction around live conductor |
-| **DT830D Multimeter** | Digital Multimeter | Laboratory reference benchmark for calibration |
-| **Prototyping Board** | Solderless breadboard & jumper leads | Signal conditioning & module routing |
-| **AC Test Bench** | Isolated terminal block, inline bulb fixture | Safe, controlled electrical testing environment |
+| Component | Specification | Quantity | Functional Purpose |
+| :--- | :--- | :---: | :--- |
+| **ESP32 Dev Module** | 30-Pin, Dual-Core 240MHz, 2.4GHz Wi-Fi | 1 | Master MCU, digital RMS sampling, cloud telemetry |
+| **ZMPT101B Module** | Active micro AC voltage transformer + op-amp | 1 | Isolated mains voltage measurement (0–250V AC) |
+| **SCT-013-030** | Split-core current transformer (30A / 1V or 100A / 50mA) | 1 | Non-invasive current induction around live wire |
+| **Resistors** | $10\text{k}\Omega$ (1/4W) | 2 | Voltage divider for $1.65\text{V}$ DC midpoint bias |
+| **Burden Resistor** | $100\Omega$ (1/4W, 1% tolerance) | 1 | Current-to-voltage secondary conversion |
+| **Capacitor** | $10\mu\text{F}$ Electrolytic (16V+) | 1 | AC noise decoupling for DC bias midpoint |
+| **3.5mm Stereo Jack** | Female audio breakout / socket | 1 | SCT-013 plug interface |
+| **DT830D Multimeter** | Digital Multimeter | 1 | External laboratory benchmark reference |
+| **Prototyping Board** | Solderless breadboard & jumper wires | 1 | Signal routing and conditioning |
+| **AC Test Fixture** | Inline terminal block & insulated bulb socket | 1 | Safe appliance testing bench |
 
-### Microcontroller Pin Mapping
-| ESP32 Pin | Connected Module | Mode | Description |
-| :--- | :--- | :--- | :--- |
-| **GPIO 34** (ADC1_CH6) | ZMPT101B Analog Output | Input | Dedicated ADC1 channel for AC voltage RMS sampling |
-| **GPIO 35** (ADC1_CH7) | SCT-013-030 Analog Output | Input | Dedicated ADC1 channel for AC current RMS sampling |
-| **3V3 / VIN** | Module Power Rails | Power | Regulated 3.3V / 5V DC supply |
-| **GND** | System Ground Rail | Ground | Common reference ground plane |
+---
 
-| Experimental Test Bench | Breadboard Signal Interface |
+### Complete Hardware Pin Mapping
+| ESP32 Pin | Connected Signal / Pin | Type | Notes |
+| :--- | :--- | :---: | :--- |
+| **GPIO 34** (ADC1_CH6) | ZMPT101B `OUT` Pin | Analog Input | Dedicated ADC1 channel; safe input-only pin on ESP32 |
+| **GPIO 35** (ADC1_CH7) | SCT-013 Biased Signal | Analog Input | Dedicated ADC1 channel; safe input-only pin on ESP32 |
+| **VIN** (5V) | ZMPT101B `VCC` | Power Out | Powers the ZMPT101B onboard op-amp |
+| **3V3** (3.3V) | $10\text{k}\Omega$ Divider High Side | Power Out | Regulated supply for the current sensor DC bias network |
+| **GND** | System Common Ground | Ground | Common reference ground plane across all components |
+
+---
+
+### Physical Hardware Test Bench
+
+| Experimental Test Bench Overview | Breadboard Signal Conditioning Close-Up |
 | :---: | :---: |
 | ![Hardware Test Bench](images/circuit_test_bench.jpg) | ![Hardware Close-up](images/hardware_setup_close.jpg) |
 
@@ -299,10 +351,10 @@ PowerSense-IoT-Energy-Monitor/
 │   ├── Code.gs                     # Google Apps Script Web App telemetry receiver
 │   └── README.md                   # Google Sheets setup and deployment guide
 │
-├── images/                         # Test bench photography and Blynk dashboard captures
+├── images/                         # Circuit schematic, test bench photos & dashboards
 │   ├── blynk_dashboard_bulb.png
 │   ├── blynk_dashboard_bulb_laptop.png
-│   ├── blynk_dashboard_fan.png
+│   ├── circuit_diagram.png         # Full Fritzing / circuit wiring schematic
 │   ├── circuit_test_bench.jpg
 │   ├── hardware_setup_close.jpg
 │   └── hardware_setup_wide.jpg
