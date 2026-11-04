@@ -1,0 +1,25 @@
+# Operating System Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Editor & IDE files
+.vscode/
+.idea/
+*.swp
+*~
+*.bak
+
+# Arduino / PlatformIO build artifacts
+build/
+.pio/
+*.bin
+*.hex
+*.elf
+*.o
+
+# Private Credentials (if separated)
+config.local.h
+credentials.h
